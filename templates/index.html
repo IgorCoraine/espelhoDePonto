@@ -1,0 +1,59 @@
+<body class="container mt-5">
+    <div class="row">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Controle de Ponto</h1>
+            <!-- Menu -->
+            <a href="{{ url_for('config') }}" class="btn btn-outline-secondary">
+                ⚙️ Configurações
+            </a>
+            <a href="{{ url_for('relatorio') }}" class="btn btn-outline-secondary">
+                📇 Relatório
+            </a>
+        </div>
+        <!-- Formulário -->
+        <div class="col-md-4">
+            <form method="POST" class="card p-3 shadow-sm">
+                <h4>Novo Registro</h4>
+                <input type="date" name="data" class="form-control mb-2" required>
+                <input type="time" name="entrada" class="form-control mb-2" required>
+                <input type="time" name="saida" class="form-control mb-2" required>
+                <br>
+                <label>extra</label>
+                <input type="checkbox" name="extra" class="form-control mb-2">
+                <label>turno trocado</label>
+                <input type="checkbox" name="trocado" class="form-control mb-2">
+                <button class="btn btn-primary w-100">Salvar Ponto</button>
+            </form>
+            
+            <div class="alert alert-success mt-3">
+                <strong>Total do Mês:</strong> {{ total }}
+            </div>
+        </div>
+
+        <!-- Tabela de Histórico -->
+        <div class="col-md-8">
+            <table class="table table-striped border shadow-sm">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Data</th>
+                        <th>Entrada</th>
+                        <th>Saída</th>
+                        <th>Total Horas</th>
+                        <th>Horas Extras</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in registros %}
+                    <tr>
+                        <td>{{ r.data.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ r.entrada.strftime('%H:%M') }}</td>
+                        <td>{{ r.saida.strftime('%H:%M') }}</td>
+                        <td>{{ r.total_segundos // 3600 }}h {{ (r.total_segundos % 3600) // 60 }}min</td>
+                        <td>{{ r.total_segundos_extra // 3600 }}h {{ (r.total_segundos_extra % 3600) // 60 }}min</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>

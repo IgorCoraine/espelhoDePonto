@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Link corrigido do Bootstrap -->
+    <link href="cdn.jsdelivr.net" rel="stylesheet">
+    <title>Holerite Digital 2025</title>
+</head>
+<body class="bg-light container py-5">
+    <div class="card mx-auto shadow" style="max-width: 800px; border: 2px solid #eee;">
+        <div class="card-header bg-white border-bottom-0 pt-4 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3>Demonstrativo de Pagamento</h3>
+                <form method="POST" class="d-flex gap-2 no-print">
+                    <select name="mes_selecionado" class="form-select form-select-sm">
+                        {% for m in range(1, 13) %}
+                        <option value="{{ m }}" {% if m == mes_selecionado %}selected{% endif %}>Mês {{ m }}</option>
+                        {% endfor %}
+                    </select>
+                    <button class="btn btn-sm btn-dark">Filtrar</button>
+                </form>
+            </div>
+            <p class="text-muted">Referência: {{ "%02d"|format(mes_selecionado) }}/{{ ano_selecionado }}</p>
+        </div>
+
+        <div class="card-body p-0">
+            <table class="table table-bordered mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Cód.</th>
+                        <th>Descrição</th>
+                        <th>Referência</th>
+                        <th>Vencimentos</th>
+                        <th>Descontos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Vencimentos -->
+                    <tr>
+                        <td>001</td>
+                        <td>Horas Normais Trabalhadas</td>
+                        <td>{{ h_total }}</td>
+                        <td>R$ {{ "%.2f"|format(v_base) }}</td>
+                        <td>-</td>
+                    </tr>
+                    {% if v_extra_50 > 0 %}
+                    <tr>
+                        <td>004</td>
+                        <td>Horas Extras (50%)</td>
+                        <td>{{ "%.2f"|format(h_extra_50) }}h</td>
+                        <td>R$ {{ "%.2f"|format(v_extra_50) }}</td>
+                        <td>-</td>
+                    </tr>
+                    {% endif %}
+
+                    {% if v_extra_100 > 0 %}
+                    <tr>
+                        <td>005</td>
+                        <td>Horas Extras (100%)</td>
+                        <td>{{ "%.2f"|format(h_extra_100) }}h</td>
+                        <td>R$ {{ "%.2f"|format(v_extra_100) }}</td>
+                        <td>-</td>
+                    </tr>
+                    {% endif %}
+
+                    {% if v_peri > 0 %}
+                    <tr>
+                        <td>002</td>
+                        <td>Adicional Periculosidade</td>
+                        <td>30.00 %</td>
+                        <td>R$ {{ "%.2f"|format(v_peri) }}</td>
+                        <td>-</td>
+                    </tr>
+                    {% endif %}
+                    {% if v_noturno > 0 %}
+                    <tr>
+                        <td>003</td>
+                        <td>Adicional Noturno</td>
+                        <td>{{ h_noturna }}</td>
+                        <td>R$ {{ "%.2f"|format(v_noturno) }}</td>
+                        <td>-</td>
+                    </tr>
+                    {% endif %}
+                    
+                    <!-- Descontos -->
+                    <tr>
+                        <td>901</td>
+                        <td>Desc. INSS (2025)</td>
+                        <td>{{ (aliq_inss * 100)|round(1) }} %</td>
+                        <td>-</td>
+                        <td class="text-danger">R$ {{ "%.2f"|format(v_inss) }}</td>
+                    </tr>
+                    {% if v_irpf > 0 %}
+                    <tr>
+                        <td>902</td>
+                        <td>Desc. IRPF (2025)</td>
+                        <td>{{ (aliq_irpf * 100)|round(1) }} %</td>
+                        <td>-</td>
+                        <td class="text-danger">R$ {{ "%.2f"|format(v_irpf) }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-secondary fw-bold">
+                        <td colspan="3" class="text-end">TOTAIS</td>
+                        <td class="text-success">R$ {{ "%.2f"|format(salario_bruto) }}</td>
+                        <td class="text-danger">R$ {{ "%.2f"|format(total_descontos) }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="card-footer bg-white p-4 border-top">
+            <div class="row text-center">
+                <div class="col border-end">
+                    <small class="d-block text-muted">FGTS do Mês (8%)</small>
+                    <strong>R$ {{ "%.2f"|format(v_fgts) }}</strong>
+                </div>
+                <div class="col border-end">
+                    <small class="d-block text-muted">Salário Bruto</small>
+                    <strong>R$ {{ "%.2f"|format(salario_bruto) }}</strong>
+                </div>
+                <div class="col">
+                    <small class="d-block text-muted">LÍQUIDO A RECEBER</small>
+                    <!-- Variável corrigida para v_liquido -->
+                    <h4 class="text-primary mb-0">R$ {{ "%.2f"|format(v_liquido) }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="text-center mt-4 no-print">
+        <a href="/" class="btn btn-outline-secondary">Voltar ao Início</a>
+        <button onclick="window.print()" class="btn btn-primary">Imprimir Holerite</button>
+    </div>
+
+    <style>
+        @media print { 
+            .no-print { display: none !important; } 
+            .card { border: none !important; shadow: none !important; }
+            body { background: white !important; }
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <link href="cdn.jsdelivr.net" rel="stylesheet">
+    <title>Configurações de Salário</title>
+</head>
+<body class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white">
+                    <h4>Configurações Globais</h4>
+                </div>
+                <form method="POST" class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Valor da Hora ou Salário Base (R$)</label>
+                        <!-- O atributo value preenche o campo com o que já está salvo -->
+                        <input type="number" step="0.01" name="salario" class="form-control" 
+                               value="{{ config.salario if config else '' }}" required>
+                    </div>
+
+                    <div class="form-check form-switch mb-4">
+                        <input class="form-check-input" type="checkbox" name="periculosidade" id="peri"
+                               {% if config and config.periculosidade %} checked {% endif %}>
+                        <label class="form-check-label" for="peri">Adicional de Periculosidade (30%)</label>
+                    </div>
+
+                    <!-- Campo Adicional Noturno Corrigido -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold" for="noturno">Adicional Noturno (%)</label>
+                        <input type="number" 
+                            name="adicional_noturno" 
+                            id="noturno" 
+                            class="form-control" 
+                            value="{{ config.adicional_noturno if config else '0' }}" 
+                            required>
+                    </div>
+
+                    <!-- Campo Hora Entrada -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold" for="hora_entrada">Hora entrada</label>
+                        <input type="time" 
+                            name="hora_entrada" 
+                            id="hora_entrada" 
+                            class="form-control" 
+                            value="{{ config.hora_entrada if config else '0' }}" 
+                            required>
+                    </div>
+
+                    <!-- Campo Hora Saída -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold" for="hora_saida">Hora saída</label>
+                        <input type="time" 
+                            name="hora_saida" 
+                            id="hora_saida" 
+                            class="form-control" 
+                            value="{{ config.hora_saida if config else '0' }}" 
+                            required>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="/" class="btn btn-secondary">Voltar</a>
+                        <button type="submit" class="btn btn-primary">Salvar Configurações</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
