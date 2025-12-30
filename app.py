@@ -1,7 +1,14 @@
 from flask import Flask, render_template, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
-import os.path
+
+import google.generativeai as genai
+from dotenv import load_dotenv
+import os
+import sqlite3
+
+load_dotenv()
+
 
 app = Flask(__name__)
 # ==========================================
@@ -28,6 +35,39 @@ class Config(db.Model):
     adicional_noturno = db.Column(db.Integer)
     hora_entrada = db.Column(db.Time, nullable=False)
     hora_saida = db.Column(db.Time, nullable=False)
+
+def fetch_db_records(periodo: str):
+    """Busca registros no banco. Espera formato 'AAAA-MM'."""
+    conn = sqlite3.connect('instance/ponto.db')
+    cursor = conn.cursor()
+    
+    query = "SELECT data, total_segundos, total_segundos_extra, extra_100 FROM registro WHERE data LIKE ?"
+    cursor.execute(query, (f"{periodo}%",))
+    rows = cursor.fetchall()
+    conn.close()
+    
+    if not rows:
+        return "Nenhum registro encontrado no banco para este período."
+    return str(rows)
+
+def executar_auditoria_folha(caminho_pdf, periodo_alvo):
+    
+    #Holerite PDF Upload
+    sample_file = genai.upload_file(path=caminho_pdf, display_name="holerite")
+    #Dados de registro do banco de dados
+    registros_banco = fetch_db_records(periodo_alvo)
+
+    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+    model = genai.GenerativeModel('gemini-2.5-flash')
+
+    response = model.generate_content([
+        sample_file,
+        "\n\n",
+        f"Faça uma comparação dos registros que eu tenho de marcação de ponto com o holerite em PDF anexado (sample_file). Registros do banco: {registros_banco}. Verifique se as horas registradas no banco conferem com as horas pagas no holerite, considerando o salário base e os adicionais legais (CLT brasileira). Gere um relatório detalhado apontando quaisquer divergências encontradas, bem como um resumo final indicando se tudo está OK ou se há discrepâncias a serem corrigidas. Considere também que o holerite fecha as horas extras no dia 15 de cada mês."
+    ])
+
+    print(response.text)
+    return response.text
 
 # ==========================================
 # ROTAS
@@ -247,6 +287,15 @@ def relatorio():
     v_liquido = salario_bruto - total_descontos
 
     return render_template('relatorio.html',  **locals())
+
+@app.route('/auditoria', methods=['GET', 'POST'])
+def auditoria():
+    if request.method == 'POST':
+        caminho_pdf = request.form['caminho_pdf']
+        periodo_alvo = request.form['periodo_alvo']
+        resultado = executar_auditoria_folha(caminho_pdf, periodo_alvo)
+        return render_template('auditoria.html', resultado=resultado)
+    return render_template('auditoria.html')
 
 if __name__ == '__main__':
     with app.app_context():
