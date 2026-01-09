@@ -39,16 +39,27 @@ class Config(db.Model):
 def fetch_db_records(periodo: str):
     """Busca registros no banco. Espera formato 'AAAA-MM'."""
     conn = sqlite3.connect('instance/ponto.db')
+    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
-    query = "SELECT data, total_segundos, total_segundos_extra, extra_100 FROM registro WHERE data LIKE ?"
+    query = """
+        SELECT 
+            data AS data_registro, 
+            total_segundos AS horas_trabalhadas, 
+            total_segundos_extra AS horas_extras, 
+            extra_100 AS extra_100_porcento 
+        FROM registro 
+        WHERE data LIKE ?
+    """
     cursor.execute(query, (f"{periodo}%",))
     rows = cursor.fetchall()
     conn.close()
     
     if not rows:
-        return "Nenhum registro encontrado no banco para este período."
-    return str(rows)
+        return [] 
+
+    # Converte cada linha em um dicionário real do Python
+    return [dict(row) for row in rows]
 
 def executar_auditoria_folha(caminho_pdf, periodo_alvo):
     
