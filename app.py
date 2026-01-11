@@ -1,6 +1,9 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
+
+from werkzeug.security import check_password_hash
+from functools import wraps
 
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -11,6 +14,17 @@ load_dotenv()
 
 
 app = Flask(__name__)
+app.secret_key=os.getenv('MINHA_CHAVE_SECRETA')
+SENHA_HASH=os.getenv('MINHA_SENHA_SECRETA')
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('autenticado'):
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 # ==========================================
 # CONFIGURAÇÃO DO BANCO DE DADOS SQLite
 # ==========================================
@@ -83,7 +97,31 @@ def executar_auditoria_folha(caminho_pdf, periodo_alvo):
 # ==========================================
 # ROTAS
 # ==========================================
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        senha_digitada = request.form.get('senha')
+        
+        # Compara o hash guardado com a senha que o usuário digitou
+        if check_password_hash(SENHA_HASH, senha_digitada):
+            session['autenticado'] = True
+            return redirect(url_for('index'))
+        
+        return "Senha inválida!", 401
+    
+    return '''
+        <form method="post">
+            <input type="password" name="senha" placeholder="Senha">
+            <button type="submit">Entrar</button>
+        </form>
+    '''
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
 @app.route('/', methods=['GET', 'POST'])
+@login_required
 def index():
     if request.method == 'POST':
 
@@ -164,6 +202,7 @@ def index():
                            total=f"{horas_totais}h {minutos_totais}min")
 
 @app.route('/config', methods=['GET', 'POST'])
+@login_required
 def config():
     # Busca o primeiro (e único) registro de configuração
     config_atual = Config.query.first()
@@ -194,6 +233,7 @@ def config():
     return render_template('config.html', config=config_atual)
 
 @app.route('/relatorio', methods=['GET', 'POST'])
+@login_required
 def relatorio():
     hoje = datetime.now()
     mes_selecionado = int(request.form.get('mes_selecionado', hoje.month))
@@ -300,6 +340,7 @@ def relatorio():
     return render_template('relatorio.html',  **locals())
 
 @app.route('/auditoria', methods=['GET', 'POST'])
+@login_required
 def auditoria():
     if request.method == 'POST':
         caminho_pdf = request.form['caminho_pdf']
