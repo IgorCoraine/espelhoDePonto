@@ -188,9 +188,19 @@ def index():
 
     # Cálculo do total mensal (Mês atual de 2025)
     hoje = datetime.now()
+    mes_selecionado = hoje.month
+    ano_selecionado = hoje.year
+
+    # 1. Ajuste do Intervalo de Datas (16 do anterior ao 15 do atual)
+    data_fim = datetime(ano_selecionado, mes_selecionado, 15).date()
+    if mes_selecionado == 1:
+        data_inicio = datetime(ano_selecionado - 1, 12, 16).date()
+    else:
+        data_inicio = datetime(ano_selecionado, mes_selecionado - 1, 16).date()
+
     registros_mes = Registro.query.filter(
-        db.extract('month', Registro.data) == hoje.month,
-        db.extract('year', Registro.data) == hoje.year
+        Registro.data >= data_inicio,
+        Registro.data <= data_fim
     ).all()
 
     total_geral_segundos = sum(r.total_segundos for r in registros_mes)
@@ -239,10 +249,17 @@ def relatorio():
     mes_selecionado = int(request.form.get('mes_selecionado', hoje.month))
     ano_selecionado = int(request.form.get('ano_selecionado', hoje.year))
 
+    # 1. Ajuste do Intervalo de Datas (16 do anterior ao 15 do atual)
+    data_fim = datetime(ano_selecionado, mes_selecionado, 15).date()
+    if mes_selecionado == 1:
+        data_inicio = datetime(ano_selecionado - 1, 12, 16).date()
+    else:
+        data_inicio = datetime(ano_selecionado, mes_selecionado - 1, 16).date()
+
     config = Config.query.first()
     registros = Registro.query.filter(
-        db.extract('month', Registro.data) == mes_selecionado,
-        db.extract('year', Registro.data) == ano_selecionado
+        Registro.data >= data_inicio,
+        Registro.data <= data_fim
     ).all()
 
     # Funções para calcular INSS e IRPF com base nas tabelas de 2025
