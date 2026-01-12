@@ -161,19 +161,21 @@ def index():
             is_100 = False
             # Entrada antecipada (mais de 5 min antes)
             if trocado:
-                if saida < (conf_ent_full - timedelta(minutes=5)):
-                    total_extra_td += (conf_ent_full - saida)
-            
+                print(total_extra_td)
+                if entrada < (conf_sai_full - timedelta(minutes=5)):
+                    total_extra_td += (conf_sai_full.replace(year=2000, month=1, day=1) - entrada.replace(year=2000, month=1, day=1))
+        
                 # Saída tardia (mais de 5 min depois)
-                if entrada > (conf_sai_full + timedelta(minutes=5)):
-                    total_extra_td += (entrada - conf_sai_full)
+                if saida > (conf_ent_full + timedelta(minutes=5)):
+                    total_extra_td += (saida.replace(year=2000, month=1, day=1) - conf_ent_full.replace(year=2000, month=1, day=1))
+                    
             else:
                 if entrada < (conf_ent_full - timedelta(minutes=5)):
                     total_extra_td += (conf_ent_full - entrada)
                 # Saída tardia (mais de 5 min depois)
                 if saida > (conf_sai_full + timedelta(minutes=5)):
                     total_extra_td += (saida - conf_sai_full)
-
+        print(total_extra_td)
         novo_registro = Registro(
             data=datetime.strptime(data_str, '%Y-%m-%d').date(),
             entrada=entrada,
