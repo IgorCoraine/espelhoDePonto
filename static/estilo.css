@@ -67,6 +67,8 @@ input[type="checkbox"] {
     width: 1.2rem;
     height: 1.2rem;
     cursor: pointer;
+    margin-right: 0.5rem; /* separa do texto */
+    vertical-align: middle;
 }
 
 /* ===== BOTÃO PRINCIPAL ===== */
