@@ -9,6 +9,9 @@
             <a href="{{ url_for('relatorio') }}" class="btn btn-outline-secondary">
                 📇 Relatório
             </a>
+            <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary">
+                 🔓  Logout
+            </a>
         </div>
         <!-- Formulário -->
         <div class="col-md-4">
@@ -50,6 +53,10 @@
                         <td>{{ r.saida.strftime('%H:%M') }}</td>
                         <td>{{ r.total_segundos // 3600 }}h {{ (r.total_segundos % 3600) // 60 }}min</td>
                         <td>{{ r.total_segundos_extra // 3600 }}h {{ (r.total_segundos_extra % 3600) // 60 }}min</td>
+                        <td><a href="{{ url_for('deleteRegister', id=r.id) }}" 
+                            class="btn btn-outline-danger" 
+                            onclick="return confirm('Tem certeza que deseja excluir?')"> 🗑️
+                        </a></td>
                     </tr>
                     {% endfor %}
                 </tbody>

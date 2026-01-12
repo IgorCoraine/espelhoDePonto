@@ -211,6 +211,22 @@ def index():
                            registros=registros_mes, 
                            total=f"{horas_totais}h {minutos_totais}min")
 
+@app.route('/delete/<int:id>')
+@login_required
+def deleteRegister(id):
+    # Busca o registro pelo ID ou retorna erro 404 se não existir
+    registro = Registro.query.get_or_404(id)
+    
+    try:
+        db.session.delete(registro)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        # Opcional: imprimir erro no console ou flash message
+        print(f"Erro ao deletar: {e}")
+        
+    return redirect(url_for('index'))
+
 @app.route('/config', methods=['GET', 'POST'])
 @login_required
 def config():
