@@ -74,32 +74,32 @@
                     </tr>
                     {% endif %}
 
-                    {% if dsr_noturno > 0 %}
+                    {% if dsr_noturno_valor > 0 %}
                     <tr>
                         <td>007</td>
                         <td>DSR Noturno</td>
                         <td>-</td>
-                        <td>R$ {{ "%.2f"|format(dsr_noturno) }}</td>
+                        <td>R$ {{ "%.2f"|format(dsr_noturno_valor) }}</td>
                         <td>-</td>
                     </tr>
                     {% endif %}
 
-                    {% if dsr_extra_50 > 0 %}
+                    {% if dsr_extra_50_valor > 0 %}
                     <tr>
                         <td>008</td>
                         <td>DSR Extra 50%</td>
                         <td>-</td>
-                        <td>R$ {{ "%.2f"|format(dsr_extra_50) }}</td>
+                        <td>R$ {{ "%.2f"|format(dsr_extra_50_valor) }}</td>
                         <td>-</td>
                     </tr>
                     {% endif %}
 
-                    {% if dsr_extra_100 > 0 %}
+                    {% if dsr_extra_100_valor > 0 %}
                     <tr>
                         <td>009</td>
                         <td>DSR Extra 100%</td>
                         <td>-</td>
-                        <td>R$ {{ "%.2f"|format(dsr_extra_100) }}</td>
+                        <td>R$ {{ "%.2f"|format(dsr_extra_100_valor) }}</td>
                         <td>-</td>
                     </tr>
                     {% endif %}

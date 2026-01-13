@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, session, url_for
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, timedelta
+from sqlalchemy import extract
+from datetime import datetime, timedelta, date
 
 from werkzeug.security import check_password_hash
 from functools import wraps
@@ -28,7 +29,11 @@ def login_required(f):
 # ==========================================
 # CONFIGURAÇÃO DO BANCO DE DADOS SQLite
 # ==========================================
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ponto.db'
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+app.config['SQLALCHEMY_DATABASE_URI'] = (
+    'sqlite:///' + os.path.join(basedir, 'instance', 'ponto.db')
+)
 db = SQLAlchemy(app)
 
 # Modelo para salvar os registros
@@ -51,32 +56,22 @@ class Config(db.Model):
     hora_saida = db.Column(db.Time, nullable=False)
 
 def fetch_db_records(periodo: str):
-    """Busca registros no banco. Espera formato 'AAAA-MM'."""
-    conn = sqlite3.connect('instance/ponto.db')
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    
-    query = """
-        SELECT 
-            data AS data_registro, 
-            total_segundos AS horas_trabalhadas, 
-            total_segundos_extra AS horas_extras, 
-            extra_100 AS extra_100_porcento 
-        FROM registro 
-        WHERE data LIKE ?
-    """
-    cursor.execute(query, (f"{periodo}%",))
-    rows = cursor.fetchall()
-    conn.close()
-    
-    if not rows:
-        return [] 
+    ano, mes = map(int, periodo.split('-'))
 
-    # Converte cada linha em um dicionário real do Python
-    return [dict(row) for row in rows]
+    registros = Registro.query.filter(
+        extract('year', Registro.data) == ano,
+        extract('month', Registro.data) == mes
+    ).all()
+
+    return [{
+        "data_registro": r.data,
+        "horas_trabalhadas": r.total_segundos,
+        "horas_extras": r.total_segundos_extra,
+        "extra_100_porcento": r.extra_100
+    } for r in registros]
 
 def executar_auditoria_folha(caminho_pdf, periodo_alvo):
-    
+
     #Holerite PDF Upload
     sample_file = genai.upload_file(path=caminho_pdf, display_name="holerite")
     #Dados de registro do banco de dados
@@ -101,14 +96,14 @@ def executar_auditoria_folha(caminho_pdf, periodo_alvo):
 def login():
     if request.method == 'POST':
         senha_digitada = request.form.get('senha')
-        
+
         # Compara o hash guardado com a senha que o usuário digitou
         if check_password_hash(SENHA_HASH, senha_digitada):
             session['autenticado'] = True
             return redirect(url_for('index'))
-        
+
         return "Senha inválida!", 401
-    
+
     return '''
         <form method="post">
             <input type="password" name="senha" placeholder="Senha">
@@ -133,7 +128,7 @@ def index():
         sai_str = f"{data_str} {request.form['saida']}"
         extra = request.form.get('extra')
         trocado = request.form.get('trocado')
-        
+
         formato = '%Y-%m-%d %H:%M'
         entrada = datetime.strptime(ent_str, formato)
         saida = datetime.strptime(sai_str, formato)
@@ -143,7 +138,7 @@ def index():
             saida += timedelta(days=1)
 
         diff = saida - entrada
-        
+
         #
         conf_ent_full = datetime.combine(entrada.date(), config_atual.hora_entrada)
         conf_sai_full = datetime.combine(entrada.date(), config_atual.hora_saida)
@@ -164,11 +159,11 @@ def index():
                 print(total_extra_td)
                 if entrada < (conf_sai_full - timedelta(minutes=5)):
                     total_extra_td += (conf_sai_full.replace(year=2000, month=1, day=1) - entrada.replace(year=2000, month=1, day=1))
-        
+
                 # Saída tardia (mais de 5 min depois)
                 if saida > (conf_ent_full + timedelta(minutes=5)):
                     total_extra_td += (saida.replace(year=2000, month=1, day=1) - conf_ent_full.replace(year=2000, month=1, day=1))
-                    
+
             else:
                 if entrada < (conf_ent_full - timedelta(minutes=5)):
                     total_extra_td += (conf_ent_full - entrada)
@@ -209,8 +204,8 @@ def index():
     horas_totais = total_geral_segundos // 3600
     minutos_totais = (total_geral_segundos % 3600) // 60
 
-    return render_template('index.html', 
-                           registros=registros_mes, 
+    return render_template('index.html',
+                           registros=registros_mes,
                            total=f"{horas_totais}h {minutos_totais}min")
 
 @app.route('/delete/<int:id>')
@@ -218,7 +213,7 @@ def index():
 def deleteRegister(id):
     # Busca o registro pelo ID ou retorna erro 404 se não existir
     registro = Registro.query.get_or_404(id)
-    
+
     try:
         db.session.delete(registro)
         db.session.commit()
@@ -226,7 +221,7 @@ def deleteRegister(id):
         db.session.rollback()
         # Opcional: imprimir erro no console ou flash message
         print(f"Erro ao deletar: {e}")
-        
+
     return redirect(url_for('index'))
 
 @app.route('/config', methods=['GET', 'POST'])
@@ -254,7 +249,7 @@ def config():
             config_atual.adicional_noturno = porcent_noturno
             config_atual.hora_entrada = h_entrada
             config_atual.hora_saida = h_saida
-        
+
         db.session.commit()
         return redirect('/') # Redireciona para a home após salvar
 
@@ -298,7 +293,7 @@ def relatorio():
     def calcular_irpf(salario_bruto, inss_descontado):
         """Calcula o IRPF progressivo para 2025."""
         base_calculo = salario_bruto - inss_descontado
-        
+
         if base_calculo <= 2259.20:
             return 0.0, 0.0 # Isento
         elif base_calculo <= 2826.65:
@@ -316,7 +311,7 @@ def relatorio():
     t_segundos_extra_100 = 0
     t_segundos_extra_50 = 0
     dias_trabalhados = set()
-    
+
     for r in registros:
         #dias trabalhados
         dias_trabalhados.add(r.data)
@@ -328,13 +323,13 @@ def relatorio():
             t_segundos_extra_100 += r.total_segundos_extra
         else:
             t_segundos_extra_50 += r.total_segundos_extra
-        
+
         # Cálculo Simplificado de Horas Noturnas (22h às 05h)
         # Se a saída for após as 22h ou entrada antes das 05h
         ent = r.entrada
         sai = r.saida
         limite_noite = ent.replace(hour=22, minute=0, second=0)
-        
+
         if sai > limite_noite:
             segundos_pos_22 = (sai - max(ent, limite_noite)).total_seconds()
             t_segundos_noturnos += max(0, segundos_pos_22)
@@ -346,15 +341,16 @@ def relatorio():
     h_extra_100 = t_segundos_extra_100 / 3600
     #dias trabalhados
     qtd_dias_trabalhados = len(dias_trabalhados)
-    data_fim_real = min(data_fim, hoje)
+    hoje_dsr = date.today()
+    data_fim_real = min(data_fim, hoje_dsr)
     total_dias_periodo = (data_fim_real - data_inicio).days + 1
     dias_descanso = total_dias_periodo - qtd_dias_trabalhados
 
-    
+
     # Cálculos Financeiros
     v_hora = config.salario if config else 0
     v_base = (h_total - h_extra_100 - h_extra_50) * v_hora
-    
+
     # Cálculo das Horas Extras Financeiro (CLT 2025)
     # 50%: valor_hora * 1.5 | 100%: valor_hora * 2.0
     v_extra_50 = h_extra_50 * (v_hora * 1.5)
@@ -363,7 +359,7 @@ def relatorio():
     v_peri = 0
     if config and config.periculosidade:
         v_peri = v_base * 0.30
-        
+
     v_noturno = 0
     if config:
         # Adicional noturno sobre as horas trabalhadas no período
@@ -374,22 +370,24 @@ def relatorio():
     dsr_valor = 0
 
     if qtd_dias_trabalhados > 0:
-        horas_media_dia = h_total / qtd_dias_trabalhados
-        dsr_horas = horas_media_dia * dias_descanso
+        dsr_horas = (h_total / qtd_dias_trabalhados) * dias_descanso
         dsr_valor = dsr_horas * v_hora
     #DSR sobre adicional noturno
     dsr_noturno = 0
 
     if qtd_dias_trabalhados > 0:
-        dsr_noturno = (v_noturno / qtd_dias_trabalhados) * dias_descanso
+        dsr_noturno = (h_noturna / qtd_dias_trabalhados) * dias_descanso
+        dsr_noturno_valor = dsr_noturno * v_hora * (config.adicional_noturno / 100)
 
     #DSR sobre horas extras
     dsr_extra_50 = 0
     dsr_extra_100 = 0
 
     if qtd_dias_trabalhados > 0:
-        dsr_extra_50 = (v_extra_50 / qtd_dias_trabalhados) * dias_descanso
-        dsr_extra_100 = (v_extra_100 / qtd_dias_trabalhados) * dias_descanso
+        dsr_extra_50 = (h_extra_50 / qtd_dias_trabalhados) * dias_descanso
+        dsr_extra_50_valor = dsr_extra_50 * (v_hora * 1.5)
+        dsr_extra_100 = (h_extra_100 / qtd_dias_trabalhados) * dias_descanso
+        dsr_extra_100_valor = dsr_extra_100 * (v_hora * 2.0)
 
 
     #Calcular Salário Bruto Total para Descontos
@@ -398,11 +396,11 @@ def relatorio():
         dsr_valor +
         v_peri +
         v_noturno +
-        dsr_noturno +
+        dsr_noturno_valor +
         v_extra_50 +
-        dsr_extra_50 +
+        dsr_extra_50_valor +
         v_extra_100 +
-        dsr_extra_100
+        dsr_extra_100_valor
     )
 
 
@@ -410,7 +408,7 @@ def relatorio():
     v_inss, aliq_inss = calcular_inss(salario_bruto)
     v_irpf, aliq_irpf = calcular_irpf(salario_bruto, v_inss)
     v_fgts = salario_bruto * 0.08 # (Não é desconto, mas aparece no holerite)
-    
+
     total_descontos = v_inss + v_irpf
     v_liquido = salario_bruto - total_descontos
 
