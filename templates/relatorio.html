@@ -64,6 +64,46 @@
                     </tr>
                     {% endif %}
 
+                    {% if dsr_valor > 0 %}
+                    <tr>
+                        <td>006</td>
+                        <td>DSR</td>
+                        <td>{{ "%.2f"|format(dsr_horas) }}h</td>
+                        <td>R$ {{ "%.2f"|format(dsr_valor) }}</td>
+                        <td>-</td>
+                    </tr>
+                    {% endif %}
+
+                    {% if dsr_noturno > 0 %}
+                    <tr>
+                        <td>007</td>
+                        <td>DSR Noturno</td>
+                        <td>-</td>
+                        <td>R$ {{ "%.2f"|format(dsr_noturno) }}</td>
+                        <td>-</td>
+                    </tr>
+                    {% endif %}
+
+                    {% if dsr_extra_50 > 0 %}
+                    <tr>
+                        <td>008</td>
+                        <td>DSR Extra 50%</td>
+                        <td>-</td>
+                        <td>R$ {{ "%.2f"|format(dsr_extra_50) }}</td>
+                        <td>-</td>
+                    </tr>
+                    {% endif %}
+
+                    {% if dsr_extra_100 > 0 %}
+                    <tr>
+                        <td>009</td>
+                        <td>DSR Extra 100%</td>
+                        <td>-</td>
+                        <td>R$ {{ "%.2f"|format(dsr_extra_100) }}</td>
+                        <td>-</td>
+                    </tr>
+                    {% endif %}
+
                     {% if v_peri > 0 %}
                     <tr>
                         <td>002</td>

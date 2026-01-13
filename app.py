@@ -315,8 +315,12 @@ def relatorio():
     t_segundos_noturnos = 0
     t_segundos_extra_100 = 0
     t_segundos_extra_50 = 0
+    dias_trabalhados = set()
     
     for r in registros:
+        #dias trabalhados
+        dias_trabalhados.add(r.data)
+        # Acúmulo de Segundos Totais
         t_segundos_total += r.total_segundos
 
         # Separação de Horas Extras (50% vs 100%)
@@ -340,6 +344,12 @@ def relatorio():
     h_noturna = h_noturna = (t_segundos_noturnos / 3600) * 1.142857
     h_extra_50 = t_segundos_extra_50 / 3600
     h_extra_100 = t_segundos_extra_100 / 3600
+    #dias trabalhados
+    qtd_dias_trabalhados = len(dias_trabalhados)
+    data_fim_real = min(data_fim, hoje)
+    total_dias_periodo = (data_fim_real - data_inicio).days + 1
+    dias_descanso = total_dias_periodo - qtd_dias_trabalhados
+
     
     # Cálculos Financeiros
     v_hora = config.salario if config else 0
@@ -359,10 +369,42 @@ def relatorio():
         # Adicional noturno sobre as horas trabalhadas no período
         v_noturno = h_noturna * v_hora * (config.adicional_noturno / 100)
 
-    #total_geral = total_base + v_peri + v_noturno
+    #DSR sobre horas normais
+    dsr_horas = 0
+    dsr_valor = 0
+
+    if qtd_dias_trabalhados > 0:
+        horas_media_dia = h_total / qtd_dias_trabalhados
+        dsr_horas = horas_media_dia * dias_descanso
+        dsr_valor = dsr_horas * v_hora
+    #DSR sobre adicional noturno
+    dsr_noturno = 0
+
+    if qtd_dias_trabalhados > 0:
+        dsr_noturno = (v_noturno / qtd_dias_trabalhados) * dias_descanso
+
+    #DSR sobre horas extras
+    dsr_extra_50 = 0
+    dsr_extra_100 = 0
+
+    if qtd_dias_trabalhados > 0:
+        dsr_extra_50 = (v_extra_50 / qtd_dias_trabalhados) * dias_descanso
+        dsr_extra_100 = (v_extra_100 / qtd_dias_trabalhados) * dias_descanso
+
 
     #Calcular Salário Bruto Total para Descontos
-    salario_bruto = v_base + v_peri + v_noturno + v_extra_50 + v_extra_100
+    salario_bruto = (
+        v_base +
+        dsr_valor +
+        v_peri +
+        v_noturno +
+        dsr_noturno +
+        v_extra_50 +
+        dsr_extra_50 +
+        v_extra_100 +
+        dsr_extra_100
+    )
+
 
     #Aplicar Descontos
     v_inss, aliq_inss = calcular_inss(salario_bruto)
