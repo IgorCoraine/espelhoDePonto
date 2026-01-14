@@ -9,7 +9,6 @@ from functools import wraps
 import google.generativeai as genai
 from dotenv import load_dotenv
 import os
-import sqlite3
 
 load_dotenv()
 
@@ -88,6 +87,17 @@ def executar_auditoria_folha(caminho_pdf, periodo_alvo):
 
     print(response.text)
     return response.text
+
+def contar_domingos(data_inicio, data_fim):
+    domingos = 0
+    data_atual = data_inicio
+
+    while data_atual <= data_fim:
+        if data_atual.weekday() == 6:  # domingo
+            domingos += 1
+        data_atual += timedelta(days=1)
+
+    return domingos
 
 # ==========================================
 # ROTAS
@@ -341,10 +351,7 @@ def relatorio():
     h_extra_100 = t_segundos_extra_100 / 3600
     #dias trabalhados
     qtd_dias_trabalhados = len(dias_trabalhados)
-    hoje_dsr = date.today()
-    data_fim_real = min(data_fim, hoje_dsr)
-    total_dias_periodo = (data_fim_real - data_inicio).days + 1
-    dias_descanso = total_dias_periodo - qtd_dias_trabalhados
+    domingos = contar_domingos(data_inicio, data_fim)
 
 
     # Cálculos Financeiros
@@ -370,13 +377,13 @@ def relatorio():
     dsr_valor = 0
 
     if qtd_dias_trabalhados > 0:
-        dsr_horas = (h_total / qtd_dias_trabalhados) * dias_descanso
+        dsr_horas = (h_total / qtd_dias_trabalhados) * domingos
         dsr_valor = dsr_horas * v_hora
     #DSR sobre adicional noturno
     dsr_noturno = 0
 
     if qtd_dias_trabalhados > 0:
-        dsr_noturno = (h_noturna / qtd_dias_trabalhados) * dias_descanso
+        dsr_noturno = (h_noturna / qtd_dias_trabalhados) * domingos
         dsr_noturno_valor = dsr_noturno * v_hora * (config.adicional_noturno / 100)
 
     #DSR sobre horas extras
@@ -384,9 +391,9 @@ def relatorio():
     dsr_extra_100 = 0
 
     if qtd_dias_trabalhados > 0:
-        dsr_extra_50 = (h_extra_50 / qtd_dias_trabalhados) * dias_descanso
+        dsr_extra_50 = (h_extra_50 / qtd_dias_trabalhados) * domingos
         dsr_extra_50_valor = dsr_extra_50 * (v_hora * 1.5)
-        dsr_extra_100 = (h_extra_100 / qtd_dias_trabalhados) * dias_descanso
+        dsr_extra_100 = (h_extra_100 / qtd_dias_trabalhados) * domingos
         dsr_extra_100_valor = dsr_extra_100 * (v_hora * 2.0)
 
 
